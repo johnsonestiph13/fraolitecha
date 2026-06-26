@@ -68,7 +68,7 @@ WELCOME = (
 )
 
 PROMPTS = [
-    "1️⃣ *First Name | የመጀመሪያ ስም*\n\n_Please enter your first name:_\n_እባክዎ የመጀመሪያ ስምዎን ያስገቡ።_",
+    "1️⃣ *Full Name | ሙሉ ስም*\n\n_Please enter your full name:_\n_እባክዎ ሙሉ ስምዎን ያስገቡ።_",
     "2️⃣ *Last Name | የአያት ስም*\n\n_Please enter your last name:_\n_እባክዎ የአያት ስምዎን ያስገቡ።_",
     "3️⃣ *Mother's Full Name | የእናት ሙሉ ስም*\n\n_Please enter your mother's full name:_\n_እባክዎ የእናትዎን ሙሉ ስም ያስገቡ።_",
     "4️⃣ *CBE Account Number | የሲቢኢ አካውንት ቁጥር*\n\n_Please enter your CBE Account number:_\n_እባክዎ የሲቢኢ አካውንት ቁጥርዎን ያስገቡ።_",
