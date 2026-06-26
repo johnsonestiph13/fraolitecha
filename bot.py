@@ -728,11 +728,10 @@ if __name__ == "__main__":
     health_thread = Thread(target=run_health_server, daemon=True, name="health-server")
     health_thread.start()
     
-    # Start bot (handles own event loop)
-    try:
-        asyncio.run(run_bot())
-    except KeyboardInterrupt:
-        logger.info("🛑 Bot stopped by user")
-    except Exception as e:
-        logger.critical(f"❌ Fatal error: {e}", exc_info=True)
-        sys.exit(1)
+    # Run bot directly — let python-telegram-bot handle the event loop
+    bot_app = build_application()
+    logger.info("✅ All handlers registered")
+    logger.info("🚀 Bot is now running...")
+    logger.info("=" * 50)
+    
+    bot_app.run_polling(allowed_updates=Update.ALL_TYPES)
