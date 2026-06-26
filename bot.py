@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Telegram Registration Bot — Sequential Flow + Auto-Forward
-Bilingual (English + አማርኛ) • 7 Steps • No Buttons • All to Channel
+Bilingual (English + አማርኛ) • Start Button • No Cancel • All to Channel
 """
 
 import os
@@ -58,13 +58,31 @@ def health():
 FIRST, LAST, MOTHER, CBE, FRONT, BACK, PHOTO = range(7)
 
 # ══════════════════════════
+# CONSTANTS
+# ══════════════════════════
+BTN_START = "🚀 Start Service | አገልግሎት ጀምር"
+
+# ══════════════════════════
+# KEYBOARD
+# ══════════════════════════
+def start_button():
+    return ReplyKeyboardMarkup(
+        [[KeyboardButton(BTN_START)]],
+        resize_keyboard=True,
+        one_time_keyboard=False,
+    )
+
+def hide():
+    return ReplyKeyboardRemove()
+
+# ══════════════════════════
 # MESSAGES
 # ══════════════════════════
 
 WELCOME = (
     "🌟 *Welcome! | እንኳን ደህና መጡ!* 🌟\n\n"
-    "_Send /register to begin._\n"
-    "_ለመጀመር /register ይላኩ።_"
+    "_Click the button below to start your registration._\n"
+    "_እባክዎ ምዝገባዎን ለመጀመር ከታች ያለውን ቁልፍ ይጫኑ።_"
 )
 
 PROMPTS = [
@@ -78,12 +96,6 @@ PROMPTS = [
 ]
 
 ERR_PHOTO = "❌ *Please upload a PHOTO.*\n❌ *እባክዎ ፎቶ ይላኩ።*"
-
-CANCEL_MSG = (
-    "❌ *Registration Cancelled | ምዝገባ ተሰርዟል*\n\n"
-    "_Send /register to try again._\n"
-    "_እንደገና ለመሞከር /register ይላኩ።_"
-)
 
 def done(data):
     return (
@@ -188,26 +200,34 @@ async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # ══════════════════════════
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """ /start """
-    await update.message.reply_text(WELCOME, parse_mode=ParseMode.MARKDOWN)
+    """ /start — Show welcome with button """
+    context.user_data.clear()
+    await update.message.reply_text(
+        WELCOME,
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=start_button(),
+    )
     log.info(f"/start | User={update.effective_user.id}")
+    return ConversationHandler.END
 
 
-async def cmd_register(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """ /register — Start the sequential flow """
+async def btn_start_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """User clicks Start Service button → Begin sequential flow"""
+    if update.message.text != BTN_START:
+        return ConversationHandler.END
+
     context.user_data.clear()
     context.user_data["reg"] = {}
 
     await update.message.reply_text(
         "📝 *Registration Started! | ምዝገባ ተጀምሯል!*\n\n"
         "_Answer each question one by one._\n"
-        "_እያንዳንዱን ጥያቄ አንድ በአንድ ይመልሱ።_\n\n"
-        "_Send /cancel to stop._\n"
-        "_ለማቆም /cancel ይላኩ።_",
+        "_እያንዳንዱን ጥያቄ አንድ በአንድ ይመልሱ።_",
         parse_mode=ParseMode.MARKDOWN,
+        reply_markup=hide(),
     )
     await update.message.reply_text(PROMPTS[0], parse_mode=ParseMode.MARKDOWN)
-    log.info(f"Register | User={update.effective_user.id}")
+    log.info(f"Start Service | User={update.effective_user.id}")
     return FIRST
 
 
@@ -286,6 +306,7 @@ async def step_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         done(data),
         parse_mode=ParseMode.MARKDOWN,
+        reply_markup=start_button(),
     )
 
     # ── Send to channel ──
@@ -312,14 +333,6 @@ async def step_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-async def cmd_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """ /cancel """
-    context.user_data.clear()
-    await update.message.reply_text(CANCEL_MSG, parse_mode=ParseMode.MARKDOWN)
-    log.info(f"Cancel | User={update.effective_user.id}")
-    return ConversationHandler.END
-
-
 # ══════════════════════════
 # BUILD BOT
 # ══════════════════════════
@@ -327,9 +340,11 @@ async def cmd_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def build():
     app = ApplicationBuilder().token(TOKEN).build()
 
-    # Sequential registration flow
+    # Sequential registration flow — triggered by button click
     conv = ConversationHandler(
-        entry_points=[CommandHandler("register", cmd_register)],
+        entry_points=[
+            MessageHandler(filters.TEXT & ~filters.COMMAND, btn_start_service),
+        ],
         states={
             FIRST:  [MessageHandler(filters.TEXT & ~filters.COMMAND, step_first)],
             LAST:   [MessageHandler(filters.TEXT & ~filters.COMMAND, step_last)],
@@ -339,7 +354,7 @@ def build():
             BACK:   [MessageHandler(filters.PHOTO, step_back)],
             PHOTO:  [MessageHandler(filters.PHOTO, step_photo)],
         },
-        fallbacks=[CommandHandler("cancel", cmd_cancel)],
+        fallbacks=[],  # No cancel — must complete
         allow_reentry=True,
         per_message=False,
     )
@@ -369,5 +384,5 @@ if __name__ == "__main__":
     log.info(f"Health server on port {PORT}")
 
     bot = build()
-    log.info("✅ Bot running — Sequential flow + Auto-forward!")
+    log.info("✅ Bot running — Start Button + Sequential + Auto-forward!")
     bot.run_polling(allowed_updates=Update.ALL_TYPES)
