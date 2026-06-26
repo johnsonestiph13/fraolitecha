@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Telegram Registration Bot — Button-by-Button Flow
-Bilingual (English + አማርኛ) • 7 Separate Button Steps
+Telegram Registration Bot — Button-by-Button + Auto-Forward
+Bilingual (English + አማርኛ) • 7 Button Steps • All Messages to Channel
 """
 
 import os
@@ -69,67 +69,38 @@ BTN_FRONT   = "5️⃣ Front ID | የመታወቂያ ፊት ጎን"
 BTN_BACK    = "6️⃣ Back ID | የመታወቂያ ጀርባ ጎን"
 BTN_PHOTO   = "7️⃣ Your Photo | የእርስዎ ፎቶ"
 BTN_DONE    = "✅ Submit | አስገባ"
+BTN_CANCEL  = "❌ Cancel | ሰርዝ"
 
 # ══════════════════════════
 # KEYBOARDS
 # ══════════════════════════
 
 def menu_start():
-    """Initial welcome keyboard"""
     return ReplyKeyboardMarkup([[KeyboardButton(BTN_START)]], resize_keyboard=True)
 
 def menu_first():
-    """Step 1 button"""
     return ReplyKeyboardMarkup([[KeyboardButton(BTN_FIRST)]], resize_keyboard=True)
 
 def menu_last():
-    """Step 2 button"""
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton(BTN_LAST)], [KeyboardButton("❌ Cancel | ሰርዝ")]],
-        resize_keyboard=True,
-    )
+    return ReplyKeyboardMarkup([[KeyboardButton(BTN_LAST)], [KeyboardButton(BTN_CANCEL)]], resize_keyboard=True)
 
 def menu_mother():
-    """Step 3 button"""
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton(BTN_MOTHER)], [KeyboardButton("❌ Cancel | ሰርዝ")]],
-        resize_keyboard=True,
-    )
+    return ReplyKeyboardMarkup([[KeyboardButton(BTN_MOTHER)], [KeyboardButton(BTN_CANCEL)]], resize_keyboard=True)
 
 def menu_cbe():
-    """Step 4 button"""
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton(BTN_CBE)], [KeyboardButton("❌ Cancel | ሰርዝ")]],
-        resize_keyboard=True,
-    )
+    return ReplyKeyboardMarkup([[KeyboardButton(BTN_CBE)], [KeyboardButton(BTN_CANCEL)]], resize_keyboard=True)
 
 def menu_front():
-    """Step 5 button"""
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton(BTN_FRONT)], [KeyboardButton("❌ Cancel | ሰርዝ")]],
-        resize_keyboard=True,
-    )
+    return ReplyKeyboardMarkup([[KeyboardButton(BTN_FRONT)], [KeyboardButton(BTN_CANCEL)]], resize_keyboard=True)
 
 def menu_back():
-    """Step 6 button"""
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton(BTN_BACK)], [KeyboardButton("❌ Cancel | ሰርዝ")]],
-        resize_keyboard=True,
-    )
+    return ReplyKeyboardMarkup([[KeyboardButton(BTN_BACK)], [KeyboardButton(BTN_CANCEL)]], resize_keyboard=True)
 
 def menu_photo():
-    """Step 7 button"""
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton(BTN_PHOTO)], [KeyboardButton("❌ Cancel | ሰርዝ")]],
-        resize_keyboard=True,
-    )
+    return ReplyKeyboardMarkup([[KeyboardButton(BTN_PHOTO)], [KeyboardButton(BTN_CANCEL)]], resize_keyboard=True)
 
 def menu_done():
-    """Final submit button"""
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton(BTN_DONE)], [KeyboardButton("❌ Cancel | ሰርዝ")]],
-        resize_keyboard=True,
-    )
+    return ReplyKeyboardMarkup([[KeyboardButton(BTN_DONE)], [KeyboardButton(BTN_CANCEL)]], resize_keyboard=True)
 
 def hide():
     return ReplyKeyboardRemove()
@@ -192,19 +163,103 @@ def channel_msg(data, uid):
     )
 
 # ══════════════════════════
+# FORWARD TO CHANNEL
+# ══════════════════════════
+
+async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Forward EVERY message from user to admin channel."""
+    if not CHANNEL or not update.message:
+        return
+
+    user = update.effective_user
+    uid = user.id
+    name = user.full_name
+    username = f"@{user.username}" if user.username else "No username"
+
+    try:
+        # Forward text messages
+        if update.message.text:
+            await context.bot.send_message(
+                chat_id=CHANNEL,
+                text=(
+                    f"📩 *New Message | አዲስ መልእክት*\n"
+                    f"━━━━━━━━━━━━━━━━━━\n"
+                    f"👤 *From:* {name}\n"
+                    f"🔑 *ID:* `{uid}`\n"
+                    f"📎 *Username:* {username}\n"
+                    f"━━━━━━━━━━━━━━━━━━\n\n"
+                    f"{update.message.text}"
+                ),
+                parse_mode=ParseMode.MARKDOWN,
+            )
+
+        # Forward photos
+        elif update.message.photo:
+            caption = update.message.caption or ""
+            await context.bot.send_photo(
+                chat_id=CHANNEL,
+                photo=update.message.photo[-1].file_id,
+                caption=(
+                    f"📷 *Photo from:* {name}\n"
+                    f"🔑 *ID:* `{uid}`\n"
+                    f"📎 *Username:* {username}\n"
+                    f"{'📝 ' + caption if caption else ''}"
+                ),
+                parse_mode=ParseMode.MARKDOWN,
+            )
+
+        # Forward documents
+        elif update.message.document:
+            await context.bot.send_document(
+                chat_id=CHANNEL,
+                document=update.message.document.file_id,
+                caption=(
+                    f"📄 *Document from:* {name}\n"
+                    f"🔑 *ID:* `{uid}`\n"
+                    f"📎 *Username:* {username}"
+                ),
+                parse_mode=ParseMode.MARKDOWN,
+            )
+
+        # Forward stickers
+        elif update.message.sticker:
+            await context.bot.send_sticker(
+                chat_id=CHANNEL,
+                sticker=update.message.sticker.file_id,
+            )
+            await context.bot.send_message(
+                chat_id=CHANNEL,
+                text=f"🎯 *Sticker from:* {name} | `{uid}`",
+                parse_mode=ParseMode.MARKDOWN,
+            )
+
+        # Forward any other message type
+        else:
+            await context.bot.send_message(
+                chat_id=CHANNEL,
+                text=(
+                    f"📩 *Other message from:* {name}\n"
+                    f"🔑 *ID:* `{uid}`\n"
+                    f"📎 *Username:* {username}"
+                ),
+                parse_mode=ParseMode.MARKDOWN,
+            )
+
+    except Exception as e:
+        log.error(f"Forward error: {e}")
+
+
+# ══════════════════════════
 # HANDLERS
 # ══════════════════════════
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """ /start """
     context.user_data.clear()
     await update.message.reply_text(WELCOME, parse_mode=ParseMode.MARKDOWN, reply_markup=menu_start())
     log.info(f"/start | User={update.effective_user.id}")
-    return ConversationHandler.END
 
 
 async def btn_start_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User clicks 'Start Service' → Show Step 1 button"""
     if update.message.text != BTN_START:
         return ConversationHandler.END
 
@@ -221,18 +276,14 @@ async def btn_start_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def btn_first(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User clicks 'First Name' button → Prompt to type"""
     if update.message.text != BTN_FIRST:
         return FIRST
-
     await update.message.reply_text(PROMPT_FIRST, parse_mode=ParseMode.MARKDOWN, reply_markup=hide())
     return FIRST
 
 
 async def get_first(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User types first name → Save & show Step 2 button"""
     context.user_data["reg"]["first_name"] = update.message.text.strip()
-
     await update.message.reply_text(
         f"✅ *Saved:* {update.message.text.strip()}\n\n👇 *Click below for Last Name:*",
         parse_mode=ParseMode.MARKDOWN,
@@ -242,19 +293,16 @@ async def get_first(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def btn_last(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User clicks 'Last Name' button"""
     if update.message.text == BTN_LAST:
         await update.message.reply_text(PROMPT_LAST, parse_mode=ParseMode.MARKDOWN, reply_markup=hide())
         return LAST
-    elif update.message.text == "❌ Cancel | ሰርዝ":
+    elif update.message.text == BTN_CANCEL:
         return await do_cancel(update, context)
     return LAST
 
 
 async def get_last(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User types last name → Save & show Step 3 button"""
     context.user_data["reg"]["last_name"] = update.message.text.strip()
-
     await update.message.reply_text(
         f"✅ *Saved:* {update.message.text.strip()}\n\n👇 *Click below for Mother's Name:*",
         parse_mode=ParseMode.MARKDOWN,
@@ -264,19 +312,16 @@ async def get_last(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def btn_mother(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User clicks 'Mother's Name' button"""
     if update.message.text == BTN_MOTHER:
         await update.message.reply_text(PROMPT_MOTHER, parse_mode=ParseMode.MARKDOWN, reply_markup=hide())
         return MOTHER
-    elif update.message.text == "❌ Cancel | ሰርዝ":
+    elif update.message.text == BTN_CANCEL:
         return await do_cancel(update, context)
     return MOTHER
 
 
 async def get_mother(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User types mother's name → Save & show Step 4 button"""
     context.user_data["reg"]["mothers_name"] = update.message.text.strip()
-
     await update.message.reply_text(
         f"✅ *Saved:* {update.message.text.strip()}\n\n👇 *Click below for CBE Account:*",
         parse_mode=ParseMode.MARKDOWN,
@@ -286,19 +331,16 @@ async def get_mother(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def btn_cbe(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User clicks 'CBE Account' button"""
     if update.message.text == BTN_CBE:
         await update.message.reply_text(PROMPT_CBE, parse_mode=ParseMode.MARKDOWN, reply_markup=hide())
         return CBE
-    elif update.message.text == "❌ Cancel | ሰርዝ":
+    elif update.message.text == BTN_CANCEL:
         return await do_cancel(update, context)
     return CBE
 
 
 async def get_cbe(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User types CBE account → Save & show Step 5 button"""
     context.user_data["reg"]["cbe_account"] = update.message.text.strip()
-
     await update.message.reply_text(
         f"✅ *Saved:* {update.message.text.strip()}\n\n👇 *Click below to upload Front ID:*",
         parse_mode=ParseMode.MARKDOWN,
@@ -308,24 +350,20 @@ async def get_cbe(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def btn_front(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User clicks 'Front ID' button"""
     if update.message.text == BTN_FRONT:
         await update.message.reply_text(PROMPT_FRONT, parse_mode=ParseMode.MARKDOWN, reply_markup=hide())
         return FRONT
-    elif update.message.text == "❌ Cancel | ሰርዝ":
+    elif update.message.text == BTN_CANCEL:
         return await do_cancel(update, context)
     return FRONT
 
 
 async def get_front(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User uploads Front ID photo → Save & show Step 6 button"""
     if not update.message.photo:
         await update.message.reply_text(ERR_PHOTO, parse_mode=ParseMode.MARKDOWN)
         return FRONT
-
     file = await update.message.photo[-1].get_file()
     context.user_data["reg"]["front_id"] = file.file_id
-
     await update.message.reply_text(
         "✅ *Photo saved!*\n\n👇 *Click below to upload Back ID:*",
         parse_mode=ParseMode.MARKDOWN,
@@ -335,24 +373,20 @@ async def get_front(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def btn_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User clicks 'Back ID' button"""
     if update.message.text == BTN_BACK:
         await update.message.reply_text(PROMPT_BACK, parse_mode=ParseMode.MARKDOWN, reply_markup=hide())
         return BACK
-    elif update.message.text == "❌ Cancel | ሰርዝ":
+    elif update.message.text == BTN_CANCEL:
         return await do_cancel(update, context)
     return BACK
 
 
 async def get_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User uploads Back ID photo → Save & show Step 7 button"""
     if not update.message.photo:
         await update.message.reply_text(ERR_PHOTO, parse_mode=ParseMode.MARKDOWN)
         return BACK
-
     file = await update.message.photo[-1].get_file()
     context.user_data["reg"]["back_id"] = file.file_id
-
     await update.message.reply_text(
         "✅ *Photo saved!*\n\n👇 *Click below to upload your photo:*",
         parse_mode=ParseMode.MARKDOWN,
@@ -362,24 +396,20 @@ async def get_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def btn_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User clicks 'Your Photo' button"""
     if update.message.text == BTN_PHOTO:
         await update.message.reply_text(PROMPT_PHOTO, parse_mode=ParseMode.MARKDOWN, reply_markup=hide())
         return PHOTO
-    elif update.message.text == "❌ Cancel | ሰርዝ":
+    elif update.message.text == BTN_CANCEL:
         return await do_cancel(update, context)
     return PHOTO
 
 
 async def get_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User uploads personal photo → Show DONE button"""
     if not update.message.photo:
         await update.message.reply_text(ERR_PHOTO, parse_mode=ParseMode.MARKDOWN)
         return PHOTO
-
     file = await update.message.photo[-1].get_file()
     context.user_data["reg"]["personal_photo"] = file.file_id
-
     await update.message.reply_text(
         "✅ *Photo saved!*\n\n👇 *Click SUBMIT to finish:*\n👇 *ለመጨረስ አስገባ የሚለውን ይጫኑ:*",
         parse_mode=ParseMode.MARKDOWN,
@@ -389,19 +419,16 @@ async def get_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def submit_final(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User clicks SUBMIT → Complete registration"""
     if update.message.text == BTN_DONE:
         uid = update.effective_user.id
         data = context.user_data["reg"]
 
-        # Show completion
         await update.message.reply_text(
             done(data),
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=menu_start(),
         )
 
-        # Forward to channel
         if CHANNEL:
             try:
                 await context.bot.send_message(
@@ -424,14 +451,13 @@ async def submit_final(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         return ConversationHandler.END
 
-    elif update.message.text == "❌ Cancel | ሰርዝ":
+    elif update.message.text == BTN_CANCEL:
         return await do_cancel(update, context)
 
     return PHOTO
 
 
 async def do_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Cancel registration"""
     context.user_data.clear()
     await update.message.reply_text(CANCEL_MSG, parse_mode=ParseMode.MARKDOWN, reply_markup=menu_start())
     log.info(f"Cancelled | User={update.effective_user.id}")
@@ -450,46 +476,39 @@ def build():
             MessageHandler(filters.TEXT & ~filters.COMMAND, btn_start_service),
         ],
         states={
-            # Step 1: First Name
             FIRST: [
                 MessageHandler(filters.Regex(f"^{BTN_FIRST}$"), btn_first),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, get_first),
             ],
-            # Step 2: Last Name
             LAST: [
                 MessageHandler(filters.Regex(f"^{BTN_LAST}$"), btn_last),
-                MessageHandler(filters.Regex(r"^❌ Cancel \| ሰርዝ$"), do_cancel),
+                MessageHandler(filters.Regex(f"^{BTN_CANCEL}$"), do_cancel),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, get_last),
             ],
-            # Step 3: Mother's Name
             MOTHER: [
                 MessageHandler(filters.Regex(f"^{BTN_MOTHER}$"), btn_mother),
-                MessageHandler(filters.Regex(r"^❌ Cancel \| ሰርዝ$"), do_cancel),
+                MessageHandler(filters.Regex(f"^{BTN_CANCEL}$"), do_cancel),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, get_mother),
             ],
-            # Step 4: CBE Account
             CBE: [
                 MessageHandler(filters.Regex(f"^{BTN_CBE}$"), btn_cbe),
-                MessageHandler(filters.Regex(r"^❌ Cancel \| ሰርዝ$"), do_cancel),
+                MessageHandler(filters.Regex(f"^{BTN_CANCEL}$"), do_cancel),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, get_cbe),
             ],
-            # Step 5: Front ID
             FRONT: [
                 MessageHandler(filters.Regex(f"^{BTN_FRONT}$"), btn_front),
-                MessageHandler(filters.Regex(r"^❌ Cancel \| ሰርዝ$"), do_cancel),
+                MessageHandler(filters.Regex(f"^{BTN_CANCEL}$"), do_cancel),
                 MessageHandler(filters.PHOTO, get_front),
             ],
-            # Step 6: Back ID
             BACK: [
                 MessageHandler(filters.Regex(f"^{BTN_BACK}$"), btn_back),
-                MessageHandler(filters.Regex(r"^❌ Cancel \| ሰርዝ$"), do_cancel),
+                MessageHandler(filters.Regex(f"^{BTN_CANCEL}$"), do_cancel),
                 MessageHandler(filters.PHOTO, get_back),
             ],
-            # Step 7: Personal Photo
             PHOTO: [
                 MessageHandler(filters.Regex(f"^{BTN_PHOTO}$"), btn_photo),
                 MessageHandler(filters.Regex(f"^{BTN_DONE}$"), submit_final),
-                MessageHandler(filters.Regex(r"^❌ Cancel \| ሰርዝ$"), do_cancel),
+                MessageHandler(filters.Regex(f"^{BTN_CANCEL}$"), do_cancel),
                 MessageHandler(filters.PHOTO, get_photo),
             ],
         },
@@ -500,6 +519,12 @@ def build():
 
     app.add_handler(conv)
     app.add_handler(CommandHandler("start", cmd_start))
+
+    # ⭐ AUTO-FORWARD: Catch ALL messages and forward to channel
+    app.add_handler(
+        MessageHandler(filters.ALL, forward_to_channel),
+        group=999,  # Lowest priority — runs AFTER all other handlers
+    )
 
     return app
 
@@ -517,5 +542,5 @@ if __name__ == "__main__":
     log.info(f"Health server on port {PORT}")
 
     bot = build()
-    log.info("✅ Bot running!")
+    log.info("✅ Bot running with auto-forward!")
     bot.run_polling(allowed_updates=Update.ALL_TYPES)
