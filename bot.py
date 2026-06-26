@@ -1,4 +1,7 @@
 import os
+import asyncio
+from threading import Thread
+from flask import Flask, request, Response
 from dotenv import load_dotenv
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import (
@@ -12,17 +15,27 @@ from telegram.ext import (
 from telegram.constants import ParseMode
 
 # ============================
-# LOAD ENVIRONMENT VARIABLES
+# LOAD ENV
 # ============================
 load_dotenv()
 
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_CHANNEL_ID = os.getenv("ADMIN_CHANNEL_ID")
 ADMIN_IDS = [int(id.strip()) for id in os.getenv("ADMIN_IDS", "").split(",") if id.strip()]
+RENDER_URL = os.getenv("RENDER_EXTERNAL_URL", "http://localhost:10000")
 
-print(f"✅ Bot starting...")
-print(f"✅ Admin Channel: {ADMIN_CHANNEL_ID}")
-print(f"✅ Admin IDs: {ADMIN_IDS}")
+# ============================
+# FLASK APP (to keep Render happy)
+# ============================
+flask_app = Flask(__name__)
+
+@flask_app.route("/")
+def home():
+    return "🤖 Bot is running! | ቦቱ እየሰራ ነው!"
+
+@flask_app.route("/health")
+def health():
+    return "OK", 200
 
 # ============================
 # IN-MEMORY STORAGE
@@ -205,6 +218,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 async def start_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Check if it's the button text
+    if update.message.text != START_BUTTON:
+        return ConversationHandler.END
+    
     await update.message.reply_text(FILL_INFO, parse_mode=ParseMode.MARKDOWN, reply_markup=ReplyKeyboardRemove())
     await update.message.reply_text(FIRST_NAME_PROMPT, parse_mode=ParseMode.MARKDOWN)
     return FIRST_NAME
@@ -273,17 +290,17 @@ async def get_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text=get_admin_channel_message(user_id, user_data, "⏳ PENDING | በመጠባበቅ ላይ"),
                 parse_mode=ParseMode.MARKDOWN
             )
-            front_msg = await context.bot.send_photo(
+            await context.bot.send_photo(
                 chat_id=ADMIN_CHANNEL_ID,
                 photo=user_data["front_id"],
                 caption="📷 Front ID | የመታወቂያ ፊት ጎን"
             )
-            back_msg = await context.bot.send_photo(
+            await context.bot.send_photo(
                 chat_id=ADMIN_CHANNEL_ID,
                 photo=user_data["back_id"],
                 caption="📷 Back ID | የመታወቂያ ጀርባ ጎን"
             )
-            photo_msg = await context.bot.send_photo(
+            await context.bot.send_photo(
                 chat_id=ADMIN_CHANNEL_ID,
                 photo=user_data["personal_photo"],
                 caption="📷 Personal Photo | የግል ፎቶ"
@@ -301,7 +318,11 @@ async def get_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(CANCEL_MESSAGE, parse_mode=ParseMode.MARKDOWN, reply_markup=get_main_menu())
+    await update.message.reply_text(
+        CANCEL_MESSAGE,
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=get_main_menu()
+    )
     print(f"❌ Registration cancelled by user {update.effective_user.id}")
     return ConversationHandler.END
 
@@ -313,14 +334,24 @@ async def admin_approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Unauthorized | ያልተፈቀደ")
         return
     if not context.args:
-        await update.message.reply_text("Usage: `/approve 123456789`", parse_mode=ParseMode.MARKDOWN)
+        await update.message.reply_text(
+            "Usage: `/approve 123456789` | አጠቃቀም: `/approve 123456789`",
+            parse_mode=ParseMode.MARKDOWN
+        )
         return
     target_user_id = int(context.args[0])
     try:
-        await context.bot.send_message(chat_id=target_user_id, text=get_approval_message(), parse_mode=ParseMode.MARKDOWN)
+        await context.bot.send_message(
+            chat_id=target_user_id,
+            text=get_approval_message(),
+            parse_mode=ParseMode.MARKDOWN
+        )
         if target_user_id in registry_map:
             registry_map[target_user_id]["status"] = "APPROVED"
-        await update.message.reply_text(f"✅ Approved user `{target_user_id}` | ተጠቃሚው ጸድቋል", parse_mode=ParseMode.MARKDOWN)
+        await update.message.reply_text(
+            f"✅ Approved user `{target_user_id}` | ተጠቃሚው ጸድቋል",
+            parse_mode=ParseMode.MARKDOWN
+        )
         print(f"✅ Admin approved user {target_user_id}")
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {e}")
@@ -330,15 +361,25 @@ async def admin_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Unauthorized | ያልተፈቀደ")
         return
     if len(context.args) < 1:
-        await update.message.reply_text("Usage: `/reject 123456789 reason`", parse_mode=ParseMode.MARKDOWN)
+        await update.message.reply_text(
+            "Usage: `/reject 123456789 reason` | አጠቃቀም: `/reject 123456789 ምክንያት`",
+            parse_mode=ParseMode.MARKDOWN
+        )
         return
     target_user_id = int(context.args[0])
     reason = " ".join(context.args[1:]) if len(context.args) > 1 else ""
     try:
-        await context.bot.send_message(chat_id=target_user_id, text=get_rejection_message(reason), parse_mode=ParseMode.MARKDOWN)
+        await context.bot.send_message(
+            chat_id=target_user_id,
+            text=get_rejection_message(reason),
+            parse_mode=ParseMode.MARKDOWN
+        )
         if target_user_id in registry_map:
             registry_map[target_user_id]["status"] = "REJECTED"
-        await update.message.reply_text(f"❌ Rejected user `{target_user_id}` | ተጠቃሚው ውድቅ ተደርጓል", parse_mode=ParseMode.MARKDOWN)
+        await update.message.reply_text(
+            f"❌ Rejected user `{target_user_id}` | ተጠቃሚው ውድቅ ተደርጓል",
+            parse_mode=ParseMode.MARKDOWN
+        )
         print(f"❌ Admin rejected user {target_user_id}: {reason}")
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {e}")
@@ -348,17 +389,27 @@ async def admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Unauthorized | ያልተፈቀደ")
         return
     if len(context.args) < 2:
-        await update.message.reply_text("Usage: `/reply 123456789 message`", parse_mode=ParseMode.MARKDOWN)
+        await update.message.reply_text(
+            "Usage: `/reply 123456789 message` | አጠቃቀም: `/reply 123456789 መልእክት`",
+            parse_mode=ParseMode.MARKDOWN
+        )
         return
     target_user_id = int(context.args[0])
     message = " ".join(context.args[1:])
     try:
         await context.bot.send_message(
             chat_id=target_user_id,
-            text=f"📬 *Message from Admin* | *ከአስተዳዳሪ መልእክት*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n{message}",
+            text=(
+                f"📬 *Message from Admin* | *ከአስተዳዳሪ መልእክት*\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                f"{message}"
+            ),
             parse_mode=ParseMode.MARKDOWN
         )
-        await update.message.reply_text(f"✅ Sent to `{target_user_id}` | መልእክት ተልኳል", parse_mode=ParseMode.MARKDOWN)
+        await update.message.reply_text(
+            f"✅ Sent to `{target_user_id}` | መልእክት ተልኳል",
+            parse_mode=ParseMode.MARKDOWN
+        )
         print(f"✅ Admin replied to user {target_user_id}")
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {e}")
@@ -369,12 +420,23 @@ async def admin_pending(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     pending = {uid: data for uid, data in registry_map.items() if data["status"] == "PENDING"}
     if not pending:
-        await update.message.reply_text("📋 No pending registrations | በመጠባበቅ ላይ ያለ ምዝገባ የለም")
+        await update.message.reply_text(
+            "📋 No pending registrations | በመጠባበቅ ላይ ያለ ምዝገባ የለም",
+            parse_mode=ParseMode.MARKDOWN
+        )
         return
-    msg = "📋 *Pending Registrations* | *በመጠባበቅ ላይ ያሉ ምዝገባዎች*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+    msg = (
+        "📋 *Pending Registrations* | *በመጠባበቅ ላይ ያሉ ምዝገባዎች*\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+    )
     for uid, data in pending.items():
         ud = data["user_data"]
-        msg += f"🔑 `{uid}`\n📝 {ud.get('first_name')} | 👤 {ud.get('fathers_name')}\n🏦 {ud.get('cbe_account')}\n───────────────\n"
+        msg += (
+            f"🔑 `{uid}`\n"
+            f"📝 {ud.get('first_name')} | 👤 {ud.get('fathers_name')}\n"
+            f"🏦 {ud.get('cbe_account')}\n"
+            f"───────────────\n"
+        )
     await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
 
 # ============================
@@ -385,20 +447,31 @@ def main():
     print("🤖 BOT STARTING...")
     print("=" * 50)
     
-    # Create application using ApplicationBuilder
+    # Create application
     app = ApplicationBuilder().token(TOKEN).build()
     
     # Conversation Handler
     conv_handler = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex(f"^{START_BUTTON}$"), start_service)],
+        entry_points=[
+            MessageHandler(filters.TEXT & ~filters.COMMAND, start_service)
+        ],
         states={
             FIRST_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_first_name)],
             FATHERS_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_fathers_name)],
             MOTHERS_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_mothers_name)],
             CBE_ACCOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_cbe_account)],
-            FRONT_ID: [MessageHandler(filters.PHOTO, get_front_id), MessageHandler(filters.TEXT & ~filters.COMMAND, get_front_id)],
-            BACK_ID: [MessageHandler(filters.PHOTO, get_back_id), MessageHandler(filters.TEXT & ~filters.COMMAND, get_back_id)],
-            PHOTO: [MessageHandler(filters.PHOTO, get_photo), MessageHandler(filters.TEXT & ~filters.COMMAND, get_photo)],
+            FRONT_ID: [
+                MessageHandler(filters.PHOTO, get_front_id),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, get_front_id)
+            ],
+            BACK_ID: [
+                MessageHandler(filters.PHOTO, get_back_id),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, get_back_id)
+            ],
+            PHOTO: [
+                MessageHandler(filters.PHOTO, get_photo),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, get_photo)
+            ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
@@ -412,7 +485,7 @@ def main():
     app.add_handler(conv_handler)
     
     print("✅ All handlers registered!")
-    print("🚀 Bot is running... Press Ctrl+C to stop")
+    print("🚀 Bot is running...")
     print("=" * 50)
     
     # Start polling
@@ -421,5 +494,14 @@ def main():
 # ============================
 # RUN
 # ============================
+def run_flask():
+    """Run Flask in a separate thread for Render health checks"""
+    flask_app.run(host="0.0.0.0", port=10000)
+
 if __name__ == "__main__":
+    # Start Flask in background thread for Render
+    Thread(target=run_flask, daemon=True).start()
+    print("🌐 Flask health server started on port 10000")
+    
+    # Start the bot
     main()
