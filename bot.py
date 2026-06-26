@@ -63,8 +63,8 @@ FIRST, LAST, MOTHER, CBE, FRONT, BACK, PHOTO = range(7)
 
 WELCOME = (
     "🌟 *Welcome! | እንኳን ደህና መጡ!* 🌟\n\n"
-    "_Send /register to begin._\n"
-    "_ለመጀመር /register ይላኩ።_"
+    "_Send or click /register to begin._\n"
+    "_ለመጀመር ይህን 👉 /register አንድ ጊዜ ይንኩት።_"
 )
 
 PROMPTS = [
